@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Dessert Land - Loyalty Passport</title>
+  <style>
+    :root {
+      --bg-color: #fce4ec;
+      --card-bg: #fff8f8;
+      --primary-pink: #d81b60;
+      --accent-pink: #e91e63;
+      --text-brown: #4a2c2a;
+      --circle-border: #8d6e63;
+      --circle-bg: #ffffff;
+      --stamped-bg: #f8bbd0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .passport-card {
+      background: var(--card-bg);
+      border-radius: 28px;
+      box-shadow: 0 12px 30px rgba(216, 27, 96, 0.15);
+      width: 100%;
+      max-width: 360px;
+      padding: 28px 20px;
+      border: 2px solid #f8bbd0;
+      text-align: center;
+      position: relative;
+    }
+
+    .header {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .brand-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-brown);
+      line-height: 1.1;
+    }
+
+    .brand-title span {
+      display: block;
+      color: var(--accent-pink);
+      font-size: 32px;
+      font-style: italic;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      color: var(--text-brown);
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* Grid Layout: 4 columns x 2 rows */
+    .stamp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px 10px;
+      margin: 20px 0 28px;
+      justify-items: center;
+    }
+
+    .stamp-slot {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-brown);
+      background: var(--circle-bg);
+      border: 1.5px solid var(--circle-border);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, background-color 0.2s ease;
+    }
+
+    .stamp-slot:active {
+      transform: scale(0.92);
+    }
+
+    /* Stamped status */
+    .stamp-slot.stamped {
+      background-color: var(--stamped-bg);
+      border-color: var(--accent-pink);
+      color: var(--accent-pink);
+      font-size: 22px;
+    }
+
+    /* Gift slot */
+    .gift-slot {
+      background: var(--accent-pink);
+      border-color: var(--accent-pink);
+      color: #ffffff;
+      font-size: 24px;
+    }
+
+    .gift-slot.unlocked {
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .footer-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-brown);
+    }
+
+    .footer-text span {
+      color: var(--accent-pink);
+      margin: 0 4px;
+    }
+
+    .btn-reset {
+      margin-top: 16px;
+      background: none;
+      border: none;
+      font-size: 11px;
+      color: #9e9e9e;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="passport-card">
+    <header class="header">
+      <h1 class="brand-title">
+        The
+        <span>Dessert Land</span>
+      </h1>
+      <p class="brand-subtitle">&gt; A Little World of Flavours &lt;</p>
+    </header>
+
+    <!-- Stamp Circles 1-7 + Gift -->
+    <section class="stamp-grid" id="stampGrid">
+      <div class="stamp-slot" data-index="1">1</div>
+      <div class="stamp-slot" data-index="2">2</div>
+      <div class="stamp-slot" data-index="3">3</div>
+      <div class="stamp-slot" data-index="4">4</div>
+      <div class="stamp-slot" data-index="5">5</div>
+      <div class="stamp-slot" data-index="6">6</div>
+      <div class="stamp-slot" data-index="7">7</div>
+      <div class="stamp-slot gift-slot" id="giftSlot">🎁</div>
+    </section>
+
+    <footer class="footer-text">
+      <span>♥</span> 7 Visits = 1 Surprise Gift <span>♥</span>
+    </footer>
+
+    <button class="btn-reset" onclick="resetCard()">Staff: Reset Card</button>
+  </main>
+
+  <script>
+    const CASHIER_PIN = "1234"; // Set your store secret PIN
+    let stamps = parseInt(localStorage.getItem("dessert_stamps") || "0", 10);
+
+    const slots = document.querySelectorAll(".stamp-slot:not(.gift-slot)");
+    const giftSlot = document.getElementById("giftSlot");
+
+    function render() {
+      slots.forEach((slot, i) => {
+        if (i < stamps) {
+          slot.classList.add("stamped");
+          slot.innerHTML = "🍦"; // Stamp icon
+        } else {
+          slot.classList.remove("stamped");
+          slot.innerHTML = i + 1;
+        }
+      });
+
+      if (stamps >= 7) {
+        giftSlot.classList.add("unlocked");
+      } else {
+        giftSlot.classList.remove("unlocked");
+      }
+    }
+
+    // Handle stamp addition
+    slots.forEach(slot => {
+      slot.addEventListener("click", () => {
+        const pin = prompt("Cashier: Enter 4-digit store PIN to add a stamp:");
+        if (pin === CASHIER_PIN) {
+          if (stamps < 7) {
+            stamps++;
+            localStorage.setItem("dessert_stamps", stamps);
+            render();
+            if (stamps === 7) {
+              alert("🎉 Congratulations! You have unlocked your Surprise Gift!");
+            }
+          }
+        } else if (pin !== null) {
+          alert("Incorrect PIN.");
+        }
+      });
+    });
+
+    // Handle reward redemption
+    giftSlot.addEventListener("click", () => {
+      if (stamps >= 7) {
+        const pin = prompt("Cashier: Enter PIN to redeem Surprise Gift:");
+        if (pin === CASHIER_PIN) {
+          alert("🎁 Gift redeemed successfully!");
+          stamps = 0;
+          localStorage.setItem("dessert_stamps", "0");
+          render();
+        } else if (pin !== null) {
+          alert("Incorrect PIN.");
+        }
+      } else {
+        alert(`Collect ${7 - stamps} more stamp(s) to unlock this gift!`);
+      }
+    });
+
+    function resetCard() {
+      const pin = prompt("Staff PIN required to reset card:");
+      if (pin === CASHIER_PIN) {
+        stamps = 0;
+        localStorage.setItem("dessert_stamps", "0");
+        render();
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
