@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>The Dessert Land - Loyalty Passport</title>
+  
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
   <style>
     :root {
       --bg-color: #fce4ec;
@@ -38,7 +42,7 @@
       box-shadow: 0 12px 30px rgba(216, 27, 96, 0.15);
       width: 100%;
       max-width: 360px;
-      padding: 28px 20px;
+      padding: 24px 20px;
       border: 2px solid #f8bbd0;
       text-align: center;
       position: relative;
@@ -46,7 +50,7 @@
 
     .header {
       position: relative;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .brand-title {
@@ -76,7 +80,7 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 14px 10px;
-      margin: 20px 0 28px;
+      margin: 18px 0 20px;
       justify-items: center;
     }
 
@@ -101,15 +105,13 @@
       transform: scale(0.92);
     }
 
-    /* Stamped status */
     .stamp-slot.stamped {
       background-color: var(--stamped-bg);
       border-color: var(--accent-pink);
       color: var(--accent-pink);
-      font-size: 22px;
+      font-size: 24px;
     }
 
-    /* Gift slot */
     .gift-slot {
       background: var(--accent-pink);
       border-color: var(--accent-pink);
@@ -127,9 +129,10 @@
     }
 
     .footer-text {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--text-brown);
+      margin-bottom: 16px;
     }
 
     .footer-text span {
@@ -137,8 +140,55 @@
       margin: 0 4px;
     }
 
+    /* Scanner UI */
+    .scanner-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-scan {
+      background-color: var(--accent-pink);
+      color: #ffffff;
+      border: none;
+      border-radius: 24px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(233, 30, 99, 0.25);
+      transition: transform 0.1s ease;
+    }
+
+    .btn-scan:active {
+      transform: scale(0.96);
+    }
+
+    .btn-close-scanner {
+      background: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+    }
+
+    #reader {
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      display: none;
+      margin-bottom: 12px;
+      border: 2px dashed var(--accent-pink);
+    }
+
     .btn-reset {
-      margin-top: 16px;
+      margin-top: 10px;
       background: none;
       border: none;
       font-size: 11px;
@@ -175,21 +225,37 @@
       <span>♥</span> 7 Visits = 1 Surprise Gift <span>♥</span>
     </footer>
 
+    <!-- In-App Camera Scanner Viewport -->
+    <div id="reader"></div>
+
+    <div class="scanner-controls">
+      <button class="btn-scan" id="startScanBtn">📷 Scan Cashier Stamp QR</button>
+      <button class="btn-close-scanner" id="stopScanBtn">Cancel Scanner</button>
+    </div>
+
     <button class="btn-reset" onclick="resetCard()">Staff: Reset Card</button>
   </main>
 
   <script>
-    const CASHIER_PIN = "1234"; // Set your store secret PIN
-    let stamps = parseInt(localStorage.getItem("dessert_stamps") || "0", 10);
+    const CASHIER_PIN = "1234";
+    // This is the secret code that must be encoded in the Cashier's QR code
+    const STAMP_SECRET_QR = "STAMP_ME_DESSERT";
 
+    let stamps = parseInt(localStorage.getItem("dessert_stamps") || "0", 10);
     const slots = document.querySelectorAll(".stamp-slot:not(.gift-slot)");
     const giftSlot = document.getElementById("giftSlot");
+
+    const reader = document.getElementById("reader");
+    const startScanBtn = document.getElementById("startScanBtn");
+    const stopScanBtn = document.getElementById("stopScanBtn");
+
+    let html5QrCode = null;
 
     function render() {
       slots.forEach((slot, i) => {
         if (i < stamps) {
           slot.classList.add("stamped");
-          slot.innerHTML = "🍦"; // Stamp icon
+          slot.innerHTML = "🍦";
         } else {
           slot.classList.remove("stamped");
           slot.innerHTML = i + 1;
@@ -203,26 +269,34 @@
       }
     }
 
-    // Handle stamp addition
+    function addStamp() {
+      if (stamps < 7) {
+        stamps++;
+        localStorage.setItem("dessert_stamps", stamps);
+        render();
+        if (stamps === 7) {
+          alert("🎉 Congratulations! You unlocked your Surprise Gift!");
+        } else {
+          alert(`🍦 Stamp #${stamps} added!`);
+        }
+      } else {
+        alert("You already have 7 stamps! Tap the 🎁 gift to redeem.");
+      }
+    }
+
+    // Manual PIN stamp option (fallback)
     slots.forEach(slot => {
       slot.addEventListener("click", () => {
         const pin = prompt("Cashier: Enter 4-digit store PIN to add a stamp:");
         if (pin === CASHIER_PIN) {
-          if (stamps < 7) {
-            stamps++;
-            localStorage.setItem("dessert_stamps", stamps);
-            render();
-            if (stamps === 7) {
-              alert("🎉 Congratulations! You have unlocked your Surprise Gift!");
-            }
-          }
+          addStamp();
         } else if (pin !== null) {
           alert("Incorrect PIN.");
         }
       });
     });
 
-    // Handle reward redemption
+    // Reward redemption
     giftSlot.addEventListener("click", () => {
       if (stamps >= 7) {
         const pin = prompt("Cashier: Enter PIN to redeem Surprise Gift:");
@@ -247,6 +321,53 @@
         render();
       }
     }
+
+    // Camera Scanner logic
+    startScanBtn.addEventListener("click", () => {
+      reader.style.display = "block";
+      startScanBtn.style.display = "none";
+      stopScanBtn.style.display = "inline-block";
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 220, height: 220 }
+        },
+        (decodedText) => {
+          if (decodedText.trim() === STAMP_SECRET_QR) {
+            stopScanner();
+            addStamp();
+          } else {
+            alert("Invalid Stamp QR. Please scan the official store cashier code.");
+          }
+        },
+        (errorMessage) => {
+          // Continuous frame parsing error - safe to ignore
+        }
+      ).catch(err => {
+        alert("Unable to access camera. Please allow camera permissions in your browser.");
+        stopScanner();
+      });
+    });
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          reader.style.display = "none";
+          startScanBtn.style.display = "inline-block";
+          stopScanBtn.style.display = "none";
+        }).catch(() => {
+          reader.style.display = "none";
+          startScanBtn.style.display = "inline-block";
+          stopScanBtn.style.display = "none";
+        });
+      }
+    }
+
+    stopScanBtn.addEventListener("click", stopScanner);
 
     render();
   </script>
